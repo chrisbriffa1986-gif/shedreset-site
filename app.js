@@ -1,289 +1,187 @@
-/* ShedReset v3 — cinematic motion (GSAP ScrollTrigger) + first-party tracking + waitlist.
-   No third-party pixels. No fingerprinting. No cross-site cookies.
-   Respects prefers-reduced-motion. Same backend endpoints as v2 (/api/signup, /api/event). */
+/* ============================================================
+ * ShedReset v4 — client scaffold
+ * - Zero third-party fetches. All font + asset requests are first-party.
+ * - Silent by default. Sound only on explicit toggle (WebAudio, no files).
+ * - IntersectionObserver reveals manifesto lines.
+ * - Cross-origin POST to shedreset.pplx.app for signup + message.
+ * - Reduced-motion honoured throughout.
+ * ============================================================ */
+
 (function () {
-  "use strict";
+  'use strict';
 
-  document.documentElement.classList.remove("no-js");
+  var API = 'https://shedreset.pplx.app/port/8000';
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  var API = "https://shedreset.pplx.app/port/8000";
-  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  document.documentElement.classList.remove('no-js');
+  document.documentElement.classList.add('js');
 
-  var pageStart = Date.now();
-  var maxScroll = 0;
-  var scrollFired = { 25: false, 50: false, 75: false, 100: false };
-  var referrer = document.referrer || "direct";
-
-  function timeOnPage() { return Math.round((Date.now() - pageStart) / 100) / 10; }
-
-  function send(type, value, keepalive) {
+  /* ----------- Sound (WebAudio, opt-in) ----------- */
+  // No sound file is fetched from anywhere. The click sound is synthesised in
+  // the browser via WebAudio when (and only when) the user opts in. This keeps
+  // the "zero third-party fetches before consent" invariant true even for audio.
+  var audioCtx = null;
+  var soundOn = false;
+  var soundBtn = document.getElementById('soundtoggle');
+  function ping(freq, dur) {
+    if (!soundOn || reduced) return;
     try {
-      fetch(API + "/api/event", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: type, value: value == null ? null : String(value), referrer: referrer }),
-        keepalive: !!keepalive
-      }).catch(function () {});
-    } catch (e) {}
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      var o = audioCtx.createOscillator();
+      var g = audioCtx.createGain();
+      o.type = 'sine';
+      o.frequency.value = freq;
+      g.gain.value = 0;
+      o.connect(g).connect(audioCtx.destination);
+      var now = audioCtx.currentTime;
+      g.gain.setValueAtTime(0, now);
+      g.gain.linearRampToValueAtTime(0.05, now + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+      o.start(now);
+      o.stop(now + dur + 0.02);
+    } catch (e) { /* silent */ }
   }
-
-  // ---------- Tracking ----------
-  send("pageview", window.innerWidth + "x" + window.innerHeight);
-
-  function onScroll() {
-    var doc = document.documentElement;
-    var scrolled = window.scrollY + window.innerHeight;
-    var total = doc.scrollHeight;
-    var pct = total <= window.innerHeight ? 100 : Math.min(100, Math.round((scrolled / total) * 100));
-    if (pct > maxScroll) maxScroll = pct;
-    [25, 50, 75, 100].forEach(function (mark) {
-      if (pct >= mark && !scrollFired[mark]) { scrollFired[mark] = true; send("scroll", mark); }
+  if (soundBtn) {
+    soundBtn.addEventListener('click', function () {
+      soundOn = !soundOn;
+      soundBtn.setAttribute('aria-pressed', String(soundOn));
+      soundBtn.firstElementChild.textContent = 'Sound · ' + (soundOn ? 'on' : 'off');
+      if (soundOn) ping(660, 0.18);
     });
   }
-  var ticking = false;
-  window.addEventListener("scroll", function () {
-    if (!ticking) { window.requestAnimationFrame(function () { onScroll(); ticking = false; }); ticking = true; }
+  document.addEventListener('click', function (e) {
+    var el = e.target.closest && e.target.closest('a, button');
+    if (el && soundOn) ping(880, 0.08);
   }, { passive: true });
-  onScroll();
 
-  function onLeave() { send("timeonpage", JSON.stringify({ t: timeOnPage(), scroll: maxScroll }), true); }
-  window.addEventListener("pagehide", onLeave);
-  document.addEventListener("visibilitychange", function () {
-    if (document.visibilityState === "hidden") onLeave();
-  });
-
-  // ---------- Nav stuck ----------
-  var nav = document.querySelector(".nav");
-  function navState() { if (nav) nav.classList.toggle("is-stuck", window.scrollY > 40); }
-  window.addEventListener("scroll", navState, { passive: true });
-  navState();
-
-  // ---------- Motion ----------
-  function showAll() {
-    document.querySelectorAll("[data-reveal],[data-hero],[data-m]").forEach(function (el) {
-      el.style.opacity = 1; el.style.transform = "none";
-    });
-    // waitlist should still land on dark ground even without motion
-    var wl = document.querySelector(".waitlist-section");
-    if (wl) wl.classList.add("is-dark");
-  }
-
-  function initMotion() {
-    if (reduce || !window.gsap || !window.ScrollTrigger) { showAll(); return; }
-    var gsap = window.gsap;
-    gsap.registerPlugin(window.ScrollTrigger);
-
-    // set initial hidden states
-    gsap.set("[data-hero]", { opacity: 0, y: 40 });
-    gsap.set("[data-reveal]", { opacity: 0, y: 32 });
-    gsap.set(".m-line", { opacity: 0, y: 26 });
-
-    // --- HERO cascade: title lines 0.15s stagger, accent word slower + scale ---
-    var heroLines = document.querySelectorAll(".hero__title [data-hero]");
-    var tl = gsap.timeline({ delay: 0.25 });
-    tl.to(heroLines[0], { opacity: 1, y: 0, duration: 0.9, ease: "power3.out" })
-      .to(heroLines[1], { opacity: 1, y: 0, scale: 1, duration: 1.35, ease: "power2.out",
-            startAt: { scale: 1.12 } }, "-=0.75")   // "after" italic accent — slower, scale settle
-      .to(heroLines[2], { opacity: 1, y: 0, duration: 0.9, ease: "power3.out" }, "-=1.0")
-      .to(".hero__caption[data-hero]", { opacity: 1, y: 0, duration: 0.9, ease: "power3.out" }, "-=0.5")
-      .to(".hero__cta[data-hero]", { opacity: 1, y: 0, duration: 0.9, ease: "power3.out" }, "-=0.6");
-
-    // hero image slow drift
-    gsap.to(".hero__media img", {
-      yPercent: 8, ease: "none",
-      scrollTrigger: { trigger: ".hero", start: "top top", end: "bottom top", scrub: true }
-    });
-
-    // --- Generic section reveals (non-hero, non-manifesto) ---
-    document.querySelectorAll("section:not(.hero):not(.manifesto), footer").forEach(function (sec) {
-      var items = sec.querySelectorAll("[data-reveal]");
-      if (!items.length) return;
-      gsap.to(items, {
-        opacity: 1, y: 0, duration: 1.0, ease: "power3.out", stagger: 0.1,
-        scrollTrigger: { trigger: sec, start: "top 80%" }
+  /* ----------- Manifesto reveal ----------- */
+  var lines = document.querySelectorAll('.manifesto__line[data-reveal]');
+  if (lines.length && 'IntersectionObserver' in window && !reduced) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en, i) {
+        if (en.isIntersecting) {
+          setTimeout(function () { en.target.classList.add('-in'); }, i * 120);
+          io.unobserve(en.target);
+        }
       });
-    });
-
-    // --- MANIFESTO: pinned cinematic hold, lines reveal sequentially ---
-    var mLines = gsap.utils.toArray(".m-line");
-    var mtl = gsap.timeline({
-      scrollTrigger: {
-        trigger: ".manifesto",
-        start: "top top",
-        end: "+=200%",     // long scroll distance = held pin
-        pin: ".manifesto__pin",
-        scrub: 0.8
-      }
-    });
-    mtl.to(".manifesto__index", { opacity: 1, y: 0, duration: 0.4 });
-    mLines.forEach(function (line) {
-      mtl.to(line, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" })
-         .to({}, { duration: 0.55 }); // HOLD each line before advancing
-    });
-
-    // --- Parallax (retriever slower than surroundings) ---
-    document.querySelectorAll("[data-parallax]").forEach(function (img) {
-      var speed = parseFloat(img.getAttribute("data-speed")) || 0.2;
-      gsap.fromTo(img, { yPercent: -speed * 50 }, {
-        yPercent: speed * 50, ease: "none",
-        scrollTrigger: { trigger: img.closest("section, footer"), start: "top bottom", end: "bottom top", scrub: true }
-      });
-    });
-
-    // --- WAITLIST color transition: cream -> deep forest shadow on entry ---
-    var waitlist = document.querySelector(".waitlist-section");
-    if (waitlist) {
-      ScrollTrigger.create({
-        trigger: waitlist,
-        start: "top 62%",
-        onEnter: function () { waitlist.classList.add("is-dark"); },
-        onLeaveBack: function () { waitlist.classList.remove("is-dark"); }
-      });
-    }
-
-    ScrollTrigger.refresh();
-  }
-
-  if (document.readyState === "complete" || document.readyState === "interactive") {
-    setTimeout(initMotion, 0);
+    }, { threshold: 0.35 });
+    lines.forEach(function (l) { io.observe(l); });
   } else {
-    window.addEventListener("DOMContentLoaded", initMotion);
-  }
-  window.addEventListener("load", function () { if (window.ScrollTrigger) window.ScrollTrigger.refresh(); });
-
-  // ---------- "Add mobile" toggle ----------
-  var addMobileBtn = document.getElementById("add-mobile");
-  var mobileField = document.getElementById("mobile-field");
-  if (addMobileBtn && mobileField) {
-    addMobileBtn.addEventListener("click", function () {
-      mobileField.hidden = false;
-      addMobileBtn.setAttribute("aria-expanded", "true");
-      addMobileBtn.parentNode.style.display = "none";
-      var mi = mobileField.querySelector("input");
-      if (mi) mi.focus();
-    });
+    // reduced-motion or older browser — show static
+    lines.forEach(function (l) { l.classList.add('-in'); });
   }
 
-  // ---------- Waitlist form ----------
-  function bindForm(form) {
-    var source = form.getAttribute("data-source") || "waitlist";
-    var emailEl = form.querySelector('input[type=email]');
-    var mobileEl = form.querySelector('input[type=tel]');
-    var consentEl = form.querySelector('input[type=checkbox]');
-    var msgEl = form.querySelector(".form-msg");
-    var btn = form.querySelector("button[type=submit]");
-
-    form.addEventListener("submit", function (e) {
+  /* ----------- Signup form ----------- */
+  var signupForm = document.getElementById('signupForm');
+  var signupStatus = document.getElementById('signupStatus');
+  if (signupForm) {
+    signupForm.addEventListener('submit', function (e) {
       e.preventDefault();
-      msgEl.textContent = ""; msgEl.className = "form-msg";
+      signupStatus.className = 'waitlist__status';
+      signupStatus.textContent = 'Sending…';
 
-      var email = (emailEl.value || "").trim();
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-        msgEl.textContent = "Please enter a valid email address.";
-        msgEl.className = "form-msg err"; emailEl.focus(); return;
+      var email = document.getElementById('email').value.trim();
+      var consent = document.getElementById('consent').checked;
+
+      if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+        signupStatus.className = 'waitlist__status -err';
+        signupStatus.textContent = 'Please enter a valid email.';
+        return;
+      }
+      if (!consent) {
+        signupStatus.className = 'waitlist__status -err';
+        signupStatus.textContent = 'Please tick the consent box.';
+        return;
       }
 
-      var payload = {
-        email: email,
-        mobile: mobileEl ? (mobileEl.value || "").trim() : null,
-        consent: consentEl ? consentEl.checked : false,
-        source: source,
-        referrer: referrer,
-        time_on_page: timeOnPage(),
-        max_scroll: maxScroll
-      };
-
-      btn.disabled = true;
-      var oldLabel = btn.textContent;
-      btn.textContent = "Adding…";
-
-      fetch(API + "/api/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+      fetch(API + '/api/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, consent: true, source: 'shedreset.com/v4' })
       })
-        .then(function (r) { if (!r.ok) throw new Error("bad"); return r.json(); })
-        .then(function () {
-          send("signup", source);
-          var wrap = form.closest(".waitlist");
-          wrap.innerHTML =
-            '<div class="form-success" role="status">' +
-            '<p class="fs-title">You\u2019re on the list.</p>' +
-            "<p>We\u2019ll write once \u2014 when ShedReset launches. Nothing before then.</p>" +
-            "</div>";
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+        .then(function (x) {
+          if (x.ok && x.j.ok) {
+            signupStatus.className = 'waitlist__status -ok';
+            signupStatus.textContent = 'You’re on the list. We’ll email you at launch.';
+            if (soundOn) ping(523, 0.28);
+            signupForm.reset();
+          } else {
+            signupStatus.className = 'waitlist__status -err';
+            signupStatus.textContent = (x.j && x.j.detail) || 'Something went wrong. Please try again.';
+          }
         })
         .catch(function () {
-          btn.disabled = false; btn.textContent = oldLabel;
-          msgEl.textContent = "Something went wrong. Please try again.";
-          msgEl.className = "form-msg err";
+          signupStatus.className = 'waitlist__status -err';
+          signupStatus.textContent = 'Network error. Please try again.';
         });
     });
   }
-  document.querySelectorAll("form.wform").forEach(bindForm);
-})();
 
-/* --- Contact dialog: routes to /api/message on shedreset.pplx.app --- */
-(function(){
+  /* ----------- Contact dialog ----------- */
   var dlg = document.getElementById('contact-dialog');
-  var form = document.getElementById('contact-form');
-  if (!dlg || !form) return;
+  var contactForm = document.getElementById('contactForm');
+  var contactStatus = document.getElementById('contactStatus');
 
-  document.querySelectorAll('[data-contact-open]').forEach(function(a){
-    a.addEventListener('click', function(ev){
-      // Not real mailto — open dialog. If dialog element missing (older browsers), fall through to href.
-      if (typeof dlg.showModal === 'function') {
-        ev.preventDefault();
-        dlg.showModal();
-        try { form.querySelector('input[name="from_email"]').focus(); } catch(e){}
-      }
+  document.querySelectorAll('[data-contact-open]').forEach(function (el) {
+    el.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (dlg && typeof dlg.showModal === 'function') dlg.showModal();
+      else if (dlg) dlg.setAttribute('open', 'open');
     });
   });
-  document.querySelectorAll('[data-contact-close]').forEach(function(b){
-    b.addEventListener('click', function(){ dlg.close(); });
-  });
-  dlg.addEventListener('click', function(ev){
-    // Close if backdrop clicked (event target is dialog itself, not form)
-    if (ev.target === dlg) dlg.close();
-  });
-
-  var status = form.querySelector('[data-contact-status]');
-  form.addEventListener('submit', function(ev){
-    ev.preventDefault();
-    var btn = form.querySelector('.contact-send');
-    var data = {
-      from_email: form.from_email.value.trim(),
-      from_name:  form.from_name.value.trim() || null,
-      subject:    form.subject.value.trim() || null,
-      body:       form.body.value.trim(),
-      referrer:   document.referrer || location.href
-    };
-    if (!data.from_email || !data.body) return;
-    btn.disabled = true;
-    status.className = 'contact-status'; status.textContent = 'Sending…';
-    fetch(API + "/api/message", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify(data)
-    }).then(function(r){
-      if (r.ok) {
-        status.className = 'contact-status ok';
-        status.textContent = 'Thanks — we\'ll be in touch.';
-        form.reset();
-        setTimeout(function(){ dlg.close(); status.textContent=''; btn.disabled=false; }, 1600);
-      } else {
-        status.className = 'contact-status err';
-        status.textContent = 'Something went wrong — try again in a minute.';
-        btn.disabled = false;
-      }
-    }).catch(function(){
-      status.className = 'contact-status err';
-      status.textContent = 'Network hiccup — try again.';
-      btn.disabled = false;
+  document.querySelectorAll('[data-contact-close]').forEach(function (el) {
+    el.addEventListener('click', function () {
+      if (dlg && typeof dlg.close === 'function') dlg.close();
+      else if (dlg) dlg.removeAttribute('open');
     });
   });
 
-  // If landing with #contact in URL (e.g. from privacy.html), auto-open
-  if (location.hash === '#contact' && typeof dlg.showModal === 'function') {
-    setTimeout(function(){ dlg.showModal(); }, 200);
+  if (contactForm) {
+    contactForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      contactStatus.className = 'waitlist__status';
+      contactStatus.textContent = 'Sending…';
+
+      var email = document.getElementById('c-email').value.trim();
+      var name = document.getElementById('c-name').value.trim();
+      var subject = document.getElementById('c-subject').value.trim();
+      var body = document.getElementById('c-body').value.trim();
+
+      if (!email || !body) {
+        contactStatus.className = 'waitlist__status -err';
+        contactStatus.textContent = 'Email and message are required.';
+        return;
+      }
+
+      fetch(API + '/api/message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from_email: email,
+          from_name: name || null,
+          subject: subject || null,
+          body: body,
+          referrer: location.href
+        })
+      })
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+        .then(function (x) {
+          if (x.ok && x.j.ok) {
+            contactStatus.className = 'waitlist__status -ok';
+            contactStatus.textContent = 'Message sent. We’ll reply soon.';
+            contactForm.reset();
+            setTimeout(function () { if (dlg && dlg.close) dlg.close(); }, 1200);
+          } else {
+            contactStatus.className = 'waitlist__status -err';
+            contactStatus.textContent = (x.j && x.j.detail) || 'Something went wrong. Please try again.';
+          }
+        })
+        .catch(function () {
+          contactStatus.className = 'waitlist__status -err';
+          contactStatus.textContent = 'Network error. Please try again.';
+        });
+    });
   }
+
 })();
