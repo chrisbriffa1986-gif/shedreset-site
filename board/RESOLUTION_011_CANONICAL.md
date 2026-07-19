@@ -58,3 +58,14 @@ The Board adopts a **car-led, not car-only** positioning: ShedReset launches ton
 11. **[Chair of the Board]** Publish hero, demonstration, offer and single trade-enquiry block after QA and one founder approval pass; enforce 90-minute ceiling and go-live tonight
 12. **[Chief Executive Officer]** Own QA pass on mobile clarity, checkout, captions, claims and VAT presentation before publish
 13. **[Chief Executive Officer]** Ratify final decision: car-led pet-hair reset, furniture retained as secondary verified use case, valeters as first B2B validation lane, car-only vs. car+furniture acquisition deferred to post-launch test
+---
+
+## Chair rulings on Board-raised blockers (2026-07-20 ~02:00 CEST)
+
+**COGS gate:** Chair opted for a **working assumption tonight**. Chief of Staff to model a defensible mid-range landed COGS (target build ≤£6 as priced; £6–9 window pushes price up; **>£9 hard-halt** — automated check in the price-sticker rendering). Chair to confirm/correct real number tomorrow. Price sticker on the live site shows a placeholder state until Chair signs the real number, per Board's Action Item 2.
+
+**Trade lane owner:** Chair opted to **assign a contractor** to own valeter/detailer enquiry replies from tomorrow morning. **Name + email pending from Chair.** Per Board Action Item 9, if no owner is named by publish gate, the trade-enquiry block is removed rather than left unattended.
+
+**CSO seat absence:** Chair opted to **reassign CSO lens to CEO** for this resolution's post-ruling oversight. CEO now carries the strategic-aperture/price-frame check for tonight in addition to their standard QA pass. Formal CSO seating deferred to next Board convene.
+
+---
