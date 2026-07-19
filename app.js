@@ -221,3 +221,69 @@
   }
   document.querySelectorAll("form.wform").forEach(bindForm);
 })();
+
+/* --- Contact dialog: routes to /api/message on shedreset.pplx.app --- */
+(function(){
+  var dlg = document.getElementById('contact-dialog');
+  var form = document.getElementById('contact-form');
+  if (!dlg || !form) return;
+
+  document.querySelectorAll('[data-contact-open]').forEach(function(a){
+    a.addEventListener('click', function(ev){
+      // Not real mailto — open dialog. If dialog element missing (older browsers), fall through to href.
+      if (typeof dlg.showModal === 'function') {
+        ev.preventDefault();
+        dlg.showModal();
+        try { form.querySelector('input[name="from_email"]').focus(); } catch(e){}
+      }
+    });
+  });
+  document.querySelectorAll('[data-contact-close]').forEach(function(b){
+    b.addEventListener('click', function(){ dlg.close(); });
+  });
+  dlg.addEventListener('click', function(ev){
+    // Close if backdrop clicked (event target is dialog itself, not form)
+    if (ev.target === dlg) dlg.close();
+  });
+
+  var status = form.querySelector('[data-contact-status]');
+  form.addEventListener('submit', function(ev){
+    ev.preventDefault();
+    var btn = form.querySelector('.contact-send');
+    var data = {
+      from_email: form.from_email.value.trim(),
+      from_name:  form.from_name.value.trim() || null,
+      subject:    form.subject.value.trim() || null,
+      body:       form.body.value.trim(),
+      referrer:   document.referrer || location.href
+    };
+    if (!data.from_email || !data.body) return;
+    btn.disabled = true;
+    status.className = 'contact-status'; status.textContent = 'Sending…';
+    fetch(API + "/api/message", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(data)
+    }).then(function(r){
+      if (r.ok) {
+        status.className = 'contact-status ok';
+        status.textContent = 'Thanks — we\'ll be in touch.';
+        form.reset();
+        setTimeout(function(){ dlg.close(); status.textContent=''; btn.disabled=false; }, 1600);
+      } else {
+        status.className = 'contact-status err';
+        status.textContent = 'Something went wrong — try again in a minute.';
+        btn.disabled = false;
+      }
+    }).catch(function(){
+      status.className = 'contact-status err';
+      status.textContent = 'Network hiccup — try again.';
+      btn.disabled = false;
+    });
+  });
+
+  // If landing with #contact in URL (e.g. from privacy.html), auto-open
+  if (location.hash === '#contact' && typeof dlg.showModal === 'function') {
+    setTimeout(function(){ dlg.showModal(); }, 200);
+  }
+})();
