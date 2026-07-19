@@ -89,5 +89,49 @@ Close ShedReset v4 as complete on cleared Resolution #009 conditions; ringfence 
 - SQLite/Postgres durability migration for the Board store itself (Byte, capped fast-follow resolution) — acceptance test: a resolution survives service/store loss and can be restored from backup
 - Consumer Validation Sprint on next allocation cycle: capped 12hr, gated on separate resolution
 
+## Signup deletion execution log
+
+- **Executed:** 2026-07-19T22:08:31Z (backend UTC clock)
+- **Executor:** Chief of Staff, under Board Resolution #010 (2026-07-19-002) Track A authority
+- **Method:** authenticated POST to `/api/admin/signups/purge` on `https://shedreset.pplx.app` (basic auth `admin`). Endpoint added specifically for this action, deployed as part of backend site_id `396c54a0-dfa4-4062-be1b-ed309555aaeb`.
+- **Pre-purge count:** 9
+- **Post-purge count:** 0
+- **Deleted:** 9
+- **PII retained:** none. Only non-PII fields (row id, created_at timestamp, source label) captured for audit. Response body archived at `shedreset_v4/board/purge_response.json` (working copy) and included below.
+- **Repurposing / migration into future audiences:** none. Records were deleted outright, not exported or copied.
+- **Notice to affected records:** none required — 9 of 9 records were internal canary/verification signups generated during v4 buildout, not real consumer submissions. Source labels: `boot-smoke-test`, `waitlist` (1 early smoke test predating Path B decision), `pages-preflight`, `shedreset.com-live-check`, `final-verify`, `final-e2e-check`, `https-cert-check`, `shedreset.com/v4-closure-check`, `shedreset.com/v4-closure-check-2`.
+
+### Non-PII summary of deleted records
+
+| id | created_at (UTC) | source label |
+|---:|---|---|
+| 1 | 2026-07-19T17:55:31Z | boot-smoke-test |
+| 2 | 2026-07-19T17:58:26Z | waitlist |
+| 3 | 2026-07-19T18:12:41Z | pages-preflight |
+| 4 | 2026-07-19T18:42:40Z | shedreset.com-live-check |
+| 5 | 2026-07-19T18:42:53Z | final-verify |
+| 6 | 2026-07-19T18:47:47Z | final-e2e-check |
+| 7 | 2026-07-19T19:07:06Z | https-cert-check |
+| 8 | 2026-07-19T20:32:47Z | shedreset.com/v4-closure-check |
+| 9 | 2026-07-19T20:33:01Z | shedreset.com/v4-closure-check-2 |
+
+## Ledger booking (final)
+
+- **Booked to ringfence (Byte-owned, non-transferable until acceptance tests pass):**
+  - 8hr durable persistence for Board store
+  - 4hr external monitor outside Railway with named second responder + restart authority
+  - 1hr signup deletion execution + logging — **CONSUMED IN FULL THIS CYCLE** (endpoint build, security review, deploy, execute, log, commit)
+  - Ringfence total booked: 13hr
+- **Released to founder unallocated reserve now:** ~86hr
+- **Ringfence release rule:** unspent ringfenced hours (persistence + monitor = 12hr) return to founder reserve ONLY after acceptance tests pass. Not on ticket creation.
+- **Standing acceptance tests (verbatim from Track A ruling):**
+  1. Restart-survival: a written record in the Board store survives full service/sandbox restart and reads back correct on next boot.
+  2. Deliberate-outage alert: a deliberately-triggered failure emits an alert to a named founder-control channel outside the affected system.
+
+## Known WARN carried forward (not a BLOCK)
+
+- Backend `starlette` at v0.48.0 has 6 published CVEs (host header validation bypass, DoS via Range header, form parsing limits, HTTPEndpoint dispatch). Fix: pin `starlette>=1.3.1`. Not exploitable against the current attack surface (no `StaticFiles`, no `HTTPEndpoint` subclasses, mutation endpoints authenticated), but should be resolved during the 8hr Byte durable-persistence ringfence — dependency refresh is natural work in that scope.
+
 ## Signed
 - **Chief of Staff** (Chair-delegated), 2026-07-19 ~23:59 CEST
+- **Deletion log appended:** 2026-07-20 ~00:08 CEST (2026-07-19T22:08Z)
