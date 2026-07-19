@@ -72,51 +72,10 @@
   }
 
   /* ----------- Signup form ----------- */
-  var signupForm = document.getElementById('signupForm');
-  var signupStatus = document.getElementById('signupStatus');
-  if (signupForm) {
-    signupForm.addEventListener('submit', function (e) {
-      e.preventDefault();
-      signupStatus.className = 'waitlist__status';
-      signupStatus.textContent = 'Sending…';
-
-      var email = document.getElementById('email').value.trim();
-      var consent = document.getElementById('consent').checked;
-
-      if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-        signupStatus.className = 'waitlist__status -err';
-        signupStatus.textContent = 'Please enter a valid email.';
-        return;
-      }
-      if (!consent) {
-        signupStatus.className = 'waitlist__status -err';
-        signupStatus.textContent = 'Please tick the consent box.';
-        return;
-      }
-
-      fetch(API + '/api/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email, consent: true, source: 'shedreset.com/v4' })
-      })
-        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
-        .then(function (x) {
-          if (x.ok && x.j.ok) {
-            signupStatus.className = 'waitlist__status -ok';
-            signupStatus.textContent = 'You’re on the list. We’ll email you at launch.';
-            if (soundOn) ping(523, 0.28);
-            signupForm.reset();
-          } else {
-            signupStatus.className = 'waitlist__status -err';
-            signupStatus.textContent = (x.j && x.j.detail) || 'Something went wrong. Please try again.';
-          }
-        })
-        .catch(function () {
-          signupStatus.className = 'waitlist__status -err';
-          signupStatus.textContent = 'Network error. Please try again.';
-        });
-    });
-  }
+  /* Waitlist capture intentionally not wired in v4.
+     Board Resolution #009 mandated Path B: the field remains disabled until a
+     scoped v4.1 lands with (a) privacy notice, (b) explicit opt-in text, and
+     (c) documented erasure path. Until then this section is display-only. */
 
   /* ----------- Contact dialog ----------- */
   var dlg = document.getElementById('contact-dialog');
