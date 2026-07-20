@@ -1,6 +1,6 @@
 /* ============================================================
-   ShedReset v4 — CB Industries craft scaffold
-   Concept: the car, after the dog. Anchor: space.
+   ShedReset v5 — craft scaffold
+   Concept: after the shed, a reset. Anchor: space.
    Font system: Fraunces Variable + Inter Variable (self-hosted, OFL 1.1).
    All motion honours (prefers-reduced-motion). Nothing autoplays sound.
    ============================================================ */
@@ -76,8 +76,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 20;
-  padding: var(--space-3) 0;
-  mix-blend-mode: difference;
+  padding: var(--space-2) 0;
+  background: rgba(11, 15, 13, 0.6);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(245, 239, 230, 0.06);
   pointer-events: none;
 }
 .nav__inner {
@@ -87,16 +90,20 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   pointer-events: auto;
 }
 .nav__brand {
-  display: inline-flex; align-items: center; gap: .5rem;
-  color: #fff;
+  display: inline-flex; align-items: center; gap: .65rem;
+  color: var(--on-surface);
   font-family: var(--font-body);
   font-size: var(--step-0);
   font-weight: 500;
   letter-spacing: 0.02em;
 }
-.nav__brand svg { color: currentColor; }
+.nav__logo {
+  width: 34px; height: 34px;
+  border-radius: 8px;
+  display: block;
+}
 .nav__sound {
-  color: #fff;
+  color: var(--on-surface);
   font-size: .78rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -390,6 +397,13 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   color: var(--on-surface-muted);
   max-width: 42ch;
 }
+.study__teaser {
+  font-family: var(--font-display) !important;
+  font-style: italic;
+  font-size: var(--step-2) !important;
+  color: var(--accent-warm) !important;
+  margin-top: var(--space-3);
+}
 .study__object {
   position: relative;
   aspect-ratio: 4 / 5;
@@ -680,6 +694,210 @@ dialog.contact::backdrop { background: rgba(0,0,0,0.65); backdrop-filter: blur(6
 .contact__actions button[value="cancel"]:hover { background: rgba(245,239,230,0.06); }
 
 /* ============================================================
+   v5 — Species strip (Resolution #012: multi-species).
+   ============================================================ */
+.species {
+  background: var(--surface);
+  padding: var(--space-7) 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.species__inner {
+  width: min(1180px, 100% - 2 * var(--space-3));
+  margin-inline: auto;
+}
+.species__label {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--on-surface-muted);
+  margin: 0 0 var(--space-3);
+}
+.species__list {
+  margin: 0; padding: 0; list-style: none;
+  display: flex; flex-wrap: wrap;
+  column-gap: var(--space-4); row-gap: var(--space-2);
+  align-items: baseline;
+}
+.species__list li {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: var(--step-4);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--on-surface-muted);
+  --wght: 380;
+  font-variation-settings: "wght" var(--wght), "opsz" 96;
+  display: inline-flex; align-items: baseline; gap: var(--space-4);
+  transition: color var(--motion-quick);
+}
+.species__list li:hover { color: var(--on-surface); }
+.species__list li:not(:last-child)::after {
+  content: "·";
+  color: var(--accent);
+  font-style: normal;
+}
+
+/* ============================================================
+   v5 — The range: shop-by-surface tiles.
+   Car is deliberately last and smallest (Resolution #012 demotion).
+   Home/Coats/Fabric tiles are material swatches (CSS texture)
+   awaiting Chair-approved photography.
+   ============================================================ */
+.range {
+  background: var(--surface);
+  padding: var(--space-8) 0;
+}
+.range__inner {
+  width: min(1180px, 100% - 2 * var(--space-3));
+  margin-inline: auto;
+}
+.range__label {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--on-surface-muted);
+  margin: 0 0 var(--space-4);
+}
+.range__grid {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: 1fr;
+}
+@media (min-width: 760px) {
+  .range__grid {
+    grid-template-columns: repeat(12, 1fr);
+    grid-auto-rows: 1fr;
+  }
+  .tile--home   { grid-column: span 7; }
+  .tile--coats  { grid-column: span 5; }
+  .tile--fabric { grid-column: span 5; }
+  .tile--car    { grid-column: span 7; }
+}
+.tile {
+  margin: 0;
+  position: relative;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--color-ink);
+  border: 1px solid var(--line);
+  min-height: 300px;
+  display: flex;
+  align-items: flex-end;
+}
+.tile__media {
+  position: absolute; inset: 0;
+}
+.tile__media img {
+  width: 100%; height: 100%; object-fit: cover;
+  filter: saturate(0.92);
+}
+/* Material swatches — deliberate CSS textures in the house palette. */
+.tile__media--home {
+  background:
+    repeating-linear-gradient(90deg, rgba(245,239,230,0.045) 0 1px, transparent 1px 9px),
+    repeating-linear-gradient(0deg, rgba(245,239,230,0.03) 0 1px, transparent 1px 9px),
+    radial-gradient(120% 90% at 20% 10%, rgba(30,47,38,0.85), transparent 70%),
+    var(--color-ink);
+}
+.tile__media--coats {
+  background:
+    repeating-linear-gradient(135deg, rgba(245,239,230,0.05) 0 2px, transparent 2px 11px),
+    radial-gradient(110% 90% at 80% 15%, rgba(140,90,61,0.35), transparent 70%),
+    var(--color-ink);
+}
+.tile__media--fabric {
+  background:
+    repeating-linear-gradient(45deg, rgba(245,239,230,0.04) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(-45deg, rgba(245,239,230,0.04) 0 1px, transparent 1px 7px),
+    radial-gradient(120% 100% at 30% 85%, rgba(200,106,75,0.16), transparent 65%),
+    var(--color-ink);
+}
+.tile__cap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: linear-gradient(to top, rgba(11,15,13,0.82), transparent);
+}
+.tile__name {
+  font-family: var(--font-display);
+  font-size: var(--step-3);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--on-surface);
+  font-variation-settings: "wght" 480, "opsz" 60;
+}
+.tile__sub {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--on-surface-muted);
+  max-width: 38ch;
+  line-height: 1.45;
+}
+
+/* ============================================================
+   v5 — Coat moment.
+   ============================================================ */
+.coat {
+  background: var(--surface-alt);
+  padding: var(--space-8) 0;
+}
+.coat__inner {
+  width: min(760px, 100% - 2 * var(--space-3));
+  margin-inline: auto;
+  text-align: center;
+}
+.coat__label {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--on-surface-muted);
+  margin: 0 0 var(--space-3);
+}
+.coat__title {
+  font-family: var(--font-display);
+  font-size: var(--step-5);
+  line-height: 1.0;
+  letter-spacing: -0.03em;
+  margin: 0 0 var(--space-3);
+  --wght: 380;
+  --opsz: 120;
+  font-variation-settings: "wght" var(--wght), "opsz" var(--opsz);
+}
+.coat__title em { font-style: italic; color: var(--accent-warm); }
+.coat__copy {
+  font-family: var(--font-body);
+  font-size: var(--step-2);
+  line-height: 1.5;
+  color: var(--on-surface-muted);
+  max-width: 46ch;
+  margin: 0 auto;
+}
+
+/* ============================================================
+   v5 — Founders 100 (replaces the Path B waitlist state).
+   ============================================================ */
+.founders__lede {
+  font-family: var(--font-body);
+  font-size: var(--step-1);
+  line-height: 1.6;
+  color: var(--on-surface-muted);
+  max-width: 52ch;
+  margin: 0 auto var(--space-4);
+}
+.founders__lede strong {
+  color: var(--on-surface);
+  font-weight: 500;
+}
+
+/* ============================================================
    Reduced motion — a hard reset (Statute Gate 3 static state).
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {
@@ -703,4 +921,8 @@ dialog.contact::backdrop { background: rgba(0,0,0,0.65); backdrop-filter: blur(6
   .study { padding: var(--space-6) 0; }
   .study__copy h2, .waitlist__title { font-size: clamp(2.4rem, 10vw, 4rem); }
   .nav__sound { font-size: 0.68rem; padding: 0.4rem 0.6rem; }
+  .nav__logo { width: 28px; height: 28px; border-radius: 6px; }
+  .species__list li { font-size: clamp(1.7rem, 7vw, 2.6rem); }
+  .coat__title { font-size: clamp(2.4rem, 10vw, 4rem); }
+  .tile { min-height: 240px; }
 }
